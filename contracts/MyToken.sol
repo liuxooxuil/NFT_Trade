@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155Paus
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC1155PausableUpgradeable, ERC1155BurnableUpgradeable, UUPSUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -62,4 +63,32 @@ contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC11
     {
         super._update(from, to, ids, values);
     }
+
+    // 授权 ERC20 代币
+    function approveERC20(
+        address tokenAddress, 
+        address spender, 
+        uint256 amount
+        ) external {
+        require(amount > 0, "Amount must be greater than 0");
+        IERC20 token = IERC20(tokenAddress);
+        token.approve(spender, amount);
+    }
+
+
+    function transferERC20(
+        address tokenAddress,
+        address to,
+        uint256 amount
+    ) external {
+        // require(to != address(0), "Shared1155Token: Invalid recipient address");
+        require(amount > 0, "Shared1155Token: Transfer amount must be greater than 0");
+        IERC20 token = IERC20(tokenAddress);
+        // require(token.balanceOf(msg.sender) >= amount, "Shared1155Token: Insufficient ERC20 balance");
+        // require(token.allowance(msg.sender, address(this)) >= amount, "Shared1155Token: Insufficient ERC20 allowance");
+        token.transferFrom(msg.sender, to, amount);
+    }
+
+
+
 }
