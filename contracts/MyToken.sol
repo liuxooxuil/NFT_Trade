@@ -77,16 +77,16 @@ contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC11
     event NFTPurchased(uint256 indexed listingId, address indexed buyer, address indexed seller, address nftContract, uint256 tokenId, uint256 amount, uint256 totalPrice);
     event ListingCancelled(uint256 indexed listingId);
 
-    // 授权指定 NFT 合约的 tokenId 和数量
-    function approveNFT(address nftContract, uint256 id, uint256 amount) external {
-        require(nftContract != address(0), "Invalid NFT contract address");
-        require(amount > 0, "Approval amount must be greater than 0");
-        require(IERC1155Upgradeable(nftContract).balanceOf(msg.sender, id) >= amount, "Insufficient NFT balance");
+    // // 授权指定 NFT 合约的 tokenId 和数量
+    // function approveNFT(address nftContract, uint256 id, uint256 amount) external {
+    //     require(nftContract != address(0), "Invalid NFT contract address");
+    //     require(amount > 0, "Approval amount must be greater than 0");
+    //     require(IERC1155Upgradeable(nftContract).balanceOf(msg.sender, id) >= amount, "Insufficient NFT balance");
 
-        approvedAmounts[msg.sender][nftContract][id] = amount;
-        IERC1155Upgradeable(nftContract).setApprovalForAll(address(this), true);
-        emit NFTApproved(nftContract, msg.sender, id, amount, true);
-    }
+    //     approvedAmounts[msg.sender][nftContract][id] = amount;
+    //     IERC1155Upgradeable(nftContract).setApprovalForAll(address(this), true);
+    //     emit NFTApproved(nftContract, msg.sender, id, amount, true);
+    // }
 
     // 挂单 NFT
     function listNFT(address nftContract, uint256 tokenId, uint256 amount, address paymentToken, uint256 price) external returns (uint256) {
@@ -169,17 +169,17 @@ contract MyToken is Initializable, ERC1155Upgradeable, OwnableUpgradeable, ERC11
         return approvedAmounts[account][nftContract][id];
     }
 
-    // 授权 ERC20 代币
-    function approveERC20(address tokenAddress, address spender, uint256 amount) external {
-        require(amount > 0, "Amount must be greater than 0");
-        IERC20 token = IERC20(tokenAddress);
-        token.approve(spender, amount);
-    }
+    // // 授权 ERC20 代币
+    // function approveERC20(address tokenAddress, address spender, uint256 amount) external {
+    //     require(amount > 0, "Amount must be greater than 0");
+    //     IERC20 token = IERC20(tokenAddress);
+    //     token.approve(spender, amount);
+    // }
 
-    // ERC20 货币转账
-    function transferERC20(address tokenAddress, address to, uint256 amount) external {
-        require(amount > 0, "Transfer amount must be greater than 0");
-        IERC20 token = IERC20(tokenAddress);
-        token.transferFrom(msg.sender, to, amount);
-    }
+    // // ERC20 货币转账 
+    // function transferERC20(address tokenAddress, address to, uint256 amount) external {
+    //     require(amount > 0, "Transfer amount must be greater than 0");
+    //     IERC20 token = IERC20(tokenAddress);
+    //     token.transferFrom(msg.sender, to, amount);
+    // }
 }

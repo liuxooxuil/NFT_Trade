@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试 MyToken NFT 交易市场</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Web3.js -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <style>
+        body { padding: 20px; }
+        .container { max-width: 900px; }
+        .form-group { margin-bottom: 15px; }
+        .alert { margin-top: 20px; }
+        table { margin-top: 20px; }
+        .table th, .table td { vertical-align: middle; }
+        .input-group-text { width: 120px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">MyToken NFT 交易市场测试</h1>
+
+        <!-- 连接钱包 -->
+        <div class="form-group">
+            <button id="connectWallet" class="btn btn-primary">连接 MetaMask</button>
+            <p id="accountStatus" class="mt-2">未连接钱包</p>
+        </div>
+
+        <!-- 查询余额 -->
+        <div class="form-group">
+            <h3>查询 NFT 余额</h3>
+            <input id="balanceContract" class="form-control" placeholder="输入 NFT 合约地址" type="text">
+            <input id="balanceAccount" class="form-control mt-2" placeholder="输入账户地址（留空为当前用户）" type="text">
+            <input id="balanceId" class="form-control mt-2" placeholder="输入 NFT ID" type="number" min="0">
+            <button id="checkBalance" class="btn btn-info mt-2">查询余额</button>
+            <p id="balanceResult" class="mt-2"></p>
+        </div>
+
+        <!-- 直接授权 NFT (setApprovalForAll) -->
+        <div class="form-group">
+            <h3>直接授权 NFT (setApprovalForAll)</h3>
+            <input id="setApprovalContract" class="form-control" placeholder="输入 NFT 合约地址" type="text">
+            <button id="setApprovalForAll" class="btn btn-warning mt-2">授权 MyToken 合约</button>
+            <p id="setApprovalResult" class="mt-2"></p>
+        </div>
+
+        <!-- 授权 NFT (MyToken approveNFT) -->
+        <div class="form-group">
+            <h3>授权 NFT (MyToken approveNFT)</h3>
+            <input id="approveContract" class="form-control" placeholder="输入 NFT 合约地址" type="text">
+            <input id="approveId" class="form-control mt-2" placeholder="输入 NFT ID" type="number" min="0">
+            <input id="approveAmount" class="form-control mt-2" placeholder="输入授权数量" type="number" min="1">
+            <button id="approveNFT" class="btn btn-warning mt-2">授权 NFT</button>
+            <p id="approveResult" class="mt-2"></p>
+        </div>
+
+        <!-- 检查 NFT 授权数量 -->
+        <div class="form-group">
+            <h3>检查 NFT 授权数量</h3>
+            <input id="approvalContract" class="form-control" placeholder="输入 NFT 合约地址" type="text">
+            <input id="approvalAccount" class="form-control mt-2" placeholder="输入账户地址（留空为当前用户）" type="text">
+            <input id="approvalId" class="form-control mt-2" placeholder="输入 NFT ID" type="number" min="0">
+            <button id="checkApproval" class="btn btn-secondary mt-2">检查授权</button>
+            <p id="approvalResult" class="mt-2"></p>
+        </div>
+
+        <!-- 授权 ERC20 -->
+        <div class="form-group">
+            <h3>授权 ERC20 代币</h3>
+            <input id="erc20Contract" class="form-control" placeholder="输入 ERC20 代币地址" type="text">
+            <div class="input-group mt-2">
+                <span class="input-group-text">授权金额 (代币)</span>
+                <input id="erc20Amount" class="form-control" placeholder="输入代币数量 (如 1)" type="number" step="any" min="0">
+                <span class="input-group-text">× 10^18</span>
+            </div>
+            <button id="approveERC20" class="btn btn-warning mt-2">授权 ERC20</button>
+            <p id="erc20ApproveResult" class="mt-2"></p>
+        </div>
+
+        <!-- 检查 ERC20 授权金额 -->
+        <div class="form-group">
+            <h3>检查 ERC20 授权金额</h3>
+            <input id="erc20CheckContract" class="form-control" placeholder="输入 ERC20 代币地址" type="text">
+            <input id="erc20CheckAccount" class="form-control mt-2" placeholder="输入账户地址（留空为当前用户）" type="text">
+            <button id="checkERC20Approval" class="btn btn-secondary mt-2">检查 ERC20 授权</button>
+            <p id="erc20CheckResult" class="mt-2"></p>
+        </div>
+
+        <!-- 挂单 NFT -->
+        <div class="form-group">
+            <h3>挂单 NFT</h3>
+            <input id="listContract" class="form-control" placeholder="输入 NFT 合约地址" type="text">
+            <input id="listId" class="form-control mt-2" placeholder="输入 NFT ID" type="number" min="0">
+            <input id="listAmount" class="form-control mt-2" placeholder="输入挂单数量" type="number" min="1">
+            <input id="listPaymentToken" class="form-control mt-2" placeholder="输入支付代币地址 (0x0 表示 ETH)" type="text">
+            <div class="input-group mt-2">
+                <span class="input-group-text">每单位价格 (代币)</span>
+                <input id="listPrice" class="form-control" placeholder="输入每单位 NFT 价格 (如 1)" type="number" step="any" min="0">
+                <span class="input-group-text">× 10^18</span>
+            </div>
+            <button id="listNFT" class="btn btn-primary mt-2">挂单 NFT</button>
+            <p id="listResult" class="mt-2"></p>
+        </div>
+
+        <!-- 购买 NFT -->
+        <div class="form-group">
+            <h3>购买 NFT</h3>
+            <input id="buyListingId" class="form-control" placeholder="输入挂单 ID" type="number" min="1">
+            <input id="buyAmount" class="form-control mt-2" placeholder="输入购买数量" type="number" min="1">
+            <button id="buyNFT" class="btn btn-success mt-2">购买 NFT</button>
+            <p id="buyResult" class="mt-2"></p>
+        </div>
+
+        <!-- 取消挂单 -->
+        <div class="form-group">
+            <h3>取消挂单</h3>
+            <input id="cancelListingId" class="form-control" placeholder="输入挂单 ID" type="number" min="1">
+            <button id="cancelListing" class="btn btn-danger mt-2">取消挂单</button>
+            <p id="cancelResult" class="mt-2"></p>
+        </div>
+
+        <!-- 查询活跃挂单 -->
+        <div class="form-group">
+            <h3>查询活跃挂单</h3>
+            <button id="listActiveListings" class="btn btn-info mt-2">查询活跃挂单</button>
+            <table class="table table-bordered mt-3">
+                <thead>
+                    <tr>
+                        <th>挂单 ID</th>
+                        <th>卖家</th>
+                        <th>NFT 合约</th>
+                        <th>Token ID</th>
+                        <th>数量</th>
+                        <th>支付代币</th>
+                        <th>价格 (代币)</th>
+                    </tr>
+                </thead>
+                <tbody id="activeListings"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // MyToken 合约地址
+        const myTokenContractAddress = "0x1Dea44673d7Dc21a9fC0D7d571D86139Bf3FaB23";
+        // MyToken 合约 ABI
+        const myTokenABI = [
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "target",
+				"type": "address"
+			}
+		],
+		"name": "AddressEmptyCode",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "balance",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "needed",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			}
+		],
+		"name": "ERC1155InsufficientBalance",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "approver",
+				"type": "address"
+			}
+		],
+		"name": "ERC1155InvalidApprover",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "idsLength",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "valuesLength",
+				"type": "uint256"
+			}
+		],
+		"name": "ERC1155InvalidArrayLength",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			}
+		],
+		"name": "ERC1155InvalidOperator",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "receiver",
+				"type": "address"
+			}
+		],
+		"name": "ERC1155InvalidReceiver",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			}
+		],
+		"name": "ERC1155InvalidSender",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "ERC1155MissingApprovalForAll",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "implementation",
+				"type": "address"
+			}
+		],
+		"name": "ERC1967InvalidImplementation",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ERC1967NonPayable",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "EnforcedPause",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "ExpectedPause",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "FailedCall",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidInitialization",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotInitializing",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "OwnableInvalidOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "OwnableUnauthorizedAccount",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "UUPSUnauthorizedCallContext",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "slot",
+				"type": "bytes32"
+			}
+		],
+		"name": "UUPSUnsupportedProxiableUUID",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "ApprovalForAll",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint64",
+				"name": "version",
+				"type": "uint64"
+			}
+		],
+		"name": "Initialized",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "listingId",
+				"type": "uint256"
+			}
+		],
+		"name": "ListingCancelled",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "nftContract",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "NFTApproved",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "listingId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "seller",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "nftContract",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "paymentToken",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "price",
+				"type": "uint256"
+			}
+		],
+		"name": "NFTListed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "listingId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "buyer",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "seller",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "nftContract",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "totalPrice",
+				"type": "uint256"
+			}
+		],
+		"name": "NFTPurchased",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "previousOwner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "OwnershipTransferred",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "Paused",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256[]",
+				"name": "values",
+				"type": "uint256[]"
+			}
+		],
+		"name": "TransferBatch",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "value",
+				"type": "uint256"
+			}
+		],
+		"name": "TransferSingle",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "value",
+				"type": "string"
+			},
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "URI",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "Unpaused",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "implementation",
+				"type": "address"
+			}
+		],
+		"name": "Upgraded",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "UPGRADE_INTERFACE_VERSION",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "tokenAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "spender",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "approveERC20",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "nftContract",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "approveNFT",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "approvedAmounts",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "balanceOf",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address[]",
+				"name": "accounts",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			}
+		],
+		"name": "balanceOfBatch",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "value",
+				"type": "uint256"
+			}
+		],
+		"name": "burn",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "values",
+				"type": "uint256[]"
+			}
+		],
+		"name": "burnBatch",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "listingId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "buyNFT",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "listingId",
+				"type": "uint256"
+			}
+		],
+		"name": "cancelListing",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "nftContract",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "getApprovedAmount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "nftContract",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			}
+		],
+		"name": "getNFTBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "initialOwner",
+				"type": "address"
+			}
+		],
+		"name": "initialize",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			}
+		],
+		"name": "isApprovedForAll",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "nftContract",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "paymentToken",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "price",
+				"type": "uint256"
+			}
+		],
+		"name": "listNFT",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "listingIdCounter",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "listings",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "seller",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "nftContract",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tokenId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "paymentToken",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "price",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "active",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "mint",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "amounts",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "mintBatch",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "pause",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "paused",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "proxiableUUID",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "values",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "safeBatchTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "value",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "safeTransferFrom",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"internalType": "bool",
+				"name": "approved",
+				"type": "bool"
+			}
+		],
+		"name": "setApprovalForAll",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "newuri",
+				"type": "string"
+			}
+		],
+		"name": "setURI",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes4",
+				"name": "interfaceId",
+				"type": "bytes4"
+			}
+		],
+		"name": "supportsInterface",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "tokenAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "transferERC20",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "unpause",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newImplementation",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "upgradeToAndCall",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "uri",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+
+        // ERC1155 标准 ABI
+        const erc1155ABI = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "account",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "id",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "balanceOf",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "account",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "operator",
+                        "type": "address"
+                    }
+                ],
+                "name": "isApprovedForAll",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "operator",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "approved",
+                        "type": "bool"
+                    }
+                ],
+                "name": "setApprovalForAll",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        // ERC20 标准 ABI
+        const erc20ABI = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "spender",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "approve",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "owner",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "spender",
+                        "type": "address"
+                    }
+                ],
+                "name": "allowance",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "account",
+                        "type": "address"
+                    }
+                ],
+                "name": "balanceOf",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        let web3;
+        let myTokenContract;
+        let userAccount;
+
+        // 初始化 Web3
+        async function initWeb3() {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                myTokenContract = new web3.eth.Contract(myTokenABI, myTokenContractAddress);
+                const networkId = await web3.eth.net.getId();
+                console.log("当前网络 ID:", networkId);
+                if (networkId !== 11155111) { // Sepolia 网络
+                    alert("请切换到 Sepolia 网络！");
+                    return false;
+                }
+                return true;
+            } else {
+                alert("请安装 MetaMask！");
+                return false;
+            }
+        }
+
+        // 连接钱包
+        document.getElementById("connectWallet").onclick = async () => {
+            if (await initWeb3()) {
+                try {
+                    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+                    userAccount = accounts[0];
+                    document.getElementById("accountStatus").innerText = `已连接: ${userAccount}`;
+                    const balance = await web3.eth.getBalance(userAccount);
+                    console.log("ETH 余额:", web3.utils.fromWei(balance, "ether"));
+                } catch (error) {
+                    document.getElementById("accountStatus").innerText = `错误: ${error.message}`;
+                }
+            }
+        };
+
+        // 查询 NFT 余额
+        document.getElementById("checkBalance").onclick = async () => {
+            if (!web3 || !userAccount) {
+                alert("请先连接钱包！");
+                return;
+            }
+            const nftContract = document.getElementById("balanceContract").value;
+            const account = document.getElementById("balanceAccount").value || userAccount;
+            const id = document.getElementById("balanceId").value;
+            if (!nftContract || !id || parseInt(id) < 0 || !web3.utils.isAddress(account)) {
+                alert("请填写有效的 NFT 合约地址、账户地址和 ID！");
+                return;
+            }
+            if (!web3.utils.isAddress(nftContract)) {
+                alert("无效的 NFT 合约地址！");
+                return;
+            }
+            try {
+                const balance = await myTokenContract.methods.getNFTBalance(nftContract, account, id).call();
+                document.getElementById("balanceResult").innerText = `账户 ${account} 在 NFT 合约 ${nftContract} 中 ID ${id} 的余额: ${balance}`;
+            } catch (error) {
+                document.getElementById("balanceResult").innerText = `错误: ${error.message}`;
+            }
+        };
+
+        // 直接授权 NFT (setApprovalForAll)
+        document.getElementById("setApprovalForAll").onclick = async () => {
+            if (!web3 || !userAccount) {
+                alert("请先连接钱包！");
+                return;
+            }
+            const nftContract = document.getElementById("setApprovalContract").value;
+            if (!nftContract) {
+                alert("请填写有效的 NFT 合约地址！");
+                return;
+            }
+            if (!web3.utils.isAddress(nftContract)) {
+                alert("无效的 NFT 合约地址！");
+                return;
+            }
+            try {
+                const erc1155Contract = new web3.eth.Contract(erc1155ABI, nftContract);
+                await erc1155Contract.methods.setApprovalForAll(myTokenContractAddress, true).send({ from: userAccount, gas: 100000 });
+                document.getElementById("setApprovalResult").innerText = `成功授权 NFT 合约 ${nftContract} 给 MyToken 合约！`;
+            } catch (error) {
+                document.getElementById("setApprovalResult").innerText = `错误: ${error.message}`;
+            }
+        };
+
+        // 授权 NFT (MyToken approveNFT)
+        document.getElementById("approveNFT").onclick = async () => {
+            if (!web3 || !userAccount) {
+                alert("请先连接钱包！");
+                return;
+            }
+            const nftContract = document.getElementById("approveContract").value;
+            const id = document.getElementById("approveId").value;
+            const amount = document.getElementById("approveAmount").value;
+            if (!nftContract || !id || !amount || parseInt(id) < 0 || parseInt(amount) <= 0) {
+                alert("请填写有效的 NFT 合约地址、ID 和授权数量！");
+                return;
+            }
+            if (!web3.utils.isAddress(nftContract)) {
+                alert("无效的 NFT 合约地址！");
+                return;
+            }
+            try {
+                await myTokenContract.methods.approveNFT(nftContract, id, amount).send({ from: userAccount, gas: 500000 });
+                document.getElementById("approveResult").innerText = `NFT 合约 ${nftContract} 的 ID ${id} 授权 ${amount} 个成功！`;
+            } catch (error) {
+                document.getElementById("approveResult").innerText = `错误: ${error.message}`;
+            }
+        };
+
+        // 检查 NFT 授权数量
+        document.getElementById("checkApproval").onclick = async () => {
+            if (!web3 || !userAccount) {
+                alert("请先连接钱包！");
+                return;
+            }
+            const nftContract = document.getElementById("approvalContract").value;
+            const account = document.getElementById("approvalAccount").value || userAccount;
+            const id = document.getElementById("approvalId").value;
+            if (!nftContract || !id || parseInt(id) < 0 || !web3.utils.isAddress(account)) {
+                alert("请填写有效的 NFT 合约地址、账户地址和 ID！");
+                return;
+            }
+            if (!web3.utils.isAddress(nftContract)) {
+                alert("无效的 NFT 合约地址！");
+                return;
+            }
+            try {
+                const erc1155Contract = new web3.eth.Contract(erc1155ABI, nftContract);
+                const isApproved = await erc1155Contract.methods.isApprovedForAll(account, myTokenContractAddress).call();
+                const approvedAmount = await myTokenContract.methods.getApprovedAmount(account, nftContract, id).call();
+                document.getElementById("approvalResult").innerText = `账户 ${account} 在合约 ${nftContract} 的授权状态: ${isApproved ? "已授权" : "未授权"}, 授权数量: ${approvedAmount}`;
+            } catch (error) {
+                document.getElementById("approvalResult").innerText = `错误: ${error.message}`;
+            }
+        };
+
+        // 授权 ERC20
+        document.getElementById("approveERC20").onclick = async () => {
+            if (!web3 || !userAccount) {
+                alert("请先连接钱包！");
+                return;
+            }
+            const erc20ContractAddress = document.getElementById("erc20Contract").value;
+            const amount = document.getElementById("erc20Amount").value;
+            if (!erc20ContractAddress || !amount || parseFloat(amount) <= 0) {
+                alert("请填写有效的 ERC20 代币地址和授权金额！");
+                return;
+            }
+            if (!web3.utils.isAddress(erc20ContractAddress)) {
+                alert("无效的 ERC20 代币地址！");
+                return;
+            }
+            try {
+                const erc20Contract = new web3.eth.Contract(erc20ABI, erc20ContractAddress);
+                const balance = await erc20Contract.methods.balanceOf(userAccount).call();
+                const amountWei = web3.utils.toWei(amount, "ether"); // 转换为 10^18
+                if (BigInt(balance) < BigInt(amountWei)) {
+                    throw new Error(`ERC20 余额不足: 拥有 ${web3.utils.fromWei(balance, "ether")} 代币, 需要 ${amount} 代币`);
+                }
+                await erc20Contract.methods.approve(myTokenContractAddress, amountWei).send({ from: userAccount, gas: 100000 });
+                document.getElementById("erc20ApproveResult").innerText = `成功授权 ${amount} 代币（${amountWei} wei, 地址 ${erc20ContractAddress}）给 MyToken 合约！`;
+            } catch (error) {
+                document.getElementById("erc20ApproveResult").innerText = `错误: ${error.message}`;
+            }
+        };
+
+        // 检查 ERC20 授权金额
+        document.getElementById("checkERC20Approval").onclick = async () => {
+            if (!web3 || !userAccount) {
+                alert("请先连接钱包！");
+                return;
+            }
+            const erc20ContractAddress = document.getElementById("erc20CheckContract").value;
+            const account = document.getElementById("erc20CheckAccount").value || userAccount;
+            if (!erc20ContractAddress || !web3.utils.isAddress(account)) {
+                alert("请填写有效的 ERC20 代币地址和账户地址！");
+                return;
+            }
+            if (!web3.utils.isAddress(erc20ContractAddress)) {
+                alert("无效的 ERC20 代币地址！");
+                return;
+            }
+            try {
+                const erc20Contract = new web3.eth.Contract(erc20ABI, erc20ContractAddress);
+                const balance = await erc20Contract.methods.balanceOf(account).call();
+                const allowance = await erc20Contract.methods.allowance(account, myTokenContractAddress).call();
+                document.getElementById("erc20CheckResult").innerText = `账户 ${account} 的余额: ${web3.utils.fromWei(balance, "ether")} 代币, 已授权 ${web3.utils.fromWei(allowance, "ether")} 代币（地址 ${erc20ContractAddress}）给 MyToken 合约`;
+            } catch (error) {
+                document.getElementById("erc20CheckResult").innerText = `错误: ${error.message}`;
+            }
+        };
+
+        // 挂单 NFT
+        document.getElementById("listNFT").onclick = async () => {
+            if (!web3 || !userAccount) {
+                alert("请先连接钱包！");
+                return;
+            }
+            const nftContract = document.getElementById("listContract").value;
+            const tokenId = document.getElementById("listId").value;
+            const amount = document.getElementById("listAmount").value;
+            const paymentToken = document.getElementById("listPaymentToken").value || "0x0000000000000000000000000000000000000000";
+            const price = document.getElementById("listPrice").value;
+            if (!nftContract || !tokenId || !amount || !price || parseInt(tokenId) < 0 || parseInt(amount) <= 0 || parseFloat(price) <= 0) {
+                alert("请填写有效的 NFT 合约地址、ID、数量和价格！");
+                return;
+            }
+            if (!web3.utils.isAddress(nftContract) || (paymentToken !== "0x0000000000000000000000000000000000000000" && !web3.utils.isAddress(paymentToken))) {
+                alert("无效的 NFT 合约地址或支付代币地址！");
+                return;
+            }
+            try {
+                const balance = await myTokenContract.methods.getNFTBalance(nftContract, userAccount, tokenId).call();
+                const approvedAmount = await myTokenContract.methods.getApprovedAmount(userAccount, nftContract, tokenId).call();
+                if (BigInt(balance) < BigInt(amount)) {
+                    throw new Error(`余额不足: 拥有 ${balance}, 需要 ${amount}`);
+                }
+                if (BigInt(approvedAmount) < BigInt(amount)) {
+                    throw new Error(`授权数量不足: 已授权 ${approvedAmount}, 需要 ${amount}`);
+                }
+                const priceWei = web3.utils.toWei(price, "ether"); // 转换为 10^18
+                const result = await myTokenContract.methods.listNFT(nftContract, tokenId, amount, paymentToken, priceWei).send({ 
+                    from: userAccount,
+                    gas: 500000
+                });
+                console.log("交易结果:", result);
+                const listingId = await myTokenContract.methods.listingIdCounter().call() - 1;
+                document.getElementById("listResult").innerText = `挂单成功！挂单 ID: ${listingId}, 价格: ${price} 代币 (${priceWei} wei)`;
+            } catch (error) {
+                console.error("交易错误:", error);
+                document.getElementById("listResult").innerText = `错误: ${error.message}`;
+            }
+        };
+
+        // 购买 NFT
+        document.getElementById("buyNFT").onclick = async () => {
+            if (!web3 || !userAccount) {
+                alert("请先连接钱包！");
+                return;
+            }
+            const listingId = document.getElementById("buyListingId").value;
+            const amount = document.getElementById("buyAmount").value;
+            if (!listingId || !amount || parseInt(amount) <= 0) {
+                alert("请填写有效的挂单 ID 和购买数量！");
+                return;
+            }
+            try {
+                const listing = await myTokenContract.methods.listings(listingId).call();
+                console.log("挂单详情:", listing);
+                if (!listing.active) {
+                    throw new Error(`挂单 ID ${listingId} 无效或已取消`);
+                }
+                if (BigInt(amount) > BigInt(listing.amount)) {
+                    throw new Error(`购买数量过多: 可用 ${listing.amount}, 请求 ${amount}`);
+                }
+                const totalPrice = BigInt(listing.price) * BigInt(amount);
+                const totalPriceDisplay = web3.utils.fromWei(totalPrice.toString(), "ether");
+                const txOptions = { from: userAccount, gas: 500000 };
+                // 检查支付代币
+                if (listing.paymentToken === "0x0000000000000000000000000000000000000000") {
+                    const ethBalance = await web3.eth.getBalance(userAccount);
+                    if (BigInt(ethBalance) < totalPrice) {
+                        throw new Error(`ETH 余额不足: 拥有 ${web3.utils.fromWei(ethBalance, "ether")} ETH, 需要 ${totalPriceDisplay} ETH`);
+                    }
+                    txOptions.value = totalPrice.toString();
+                } else {
+                    if (!web3.utils.isAddress(listing.paymentToken)) {
+                        throw new Error(`无效的支付代币地址: ${listing.paymentToken}`);
+                    }
+                    const erc20Contract = new web3.eth.Contract(erc20ABI, listing.paymentToken);
+                    const balance = await erc20Contract.methods.balanceOf(userAccount).call();
+                    const allowance = await erc20Contract.methods.allowance(userAccount, myTokenContractAddress).call();
+                    if (BigInt(balance) < totalPrice) {
+                        throw new Error(`ERC20 余额不足: 拥有 ${web3.utils.fromWei(balance, "ether")} 代币, 需要 ${totalPriceDisplay} 代币`);
+                    }
+                    if (BigInt(allowance) < totalPrice) {
+                        throw new Error(`ERC20 授权不足: 已授权 ${web3.utils.fromWei(allowance, "ether")} 代币, 需要 ${totalPriceDisplay} 代币。请先使用“授权 ERC20”功能`);
+                    }
+                }
+                // 检查卖家 NFT 余额和授权
+                const nftContract = new web3.eth.Contract(erc1155ABI, listing.nftContract);
+                const sellerBalance = await nftContract.methods.balanceOf(listing.seller, listing.tokenId).call();
+                const isApproved = await nftContract.methods.isApprovedForAll(listing.seller, myTokenContractAddress).call();
+                if (BigInt(sellerBalance) < BigInt(amount)) {
+                    throw new Error(`卖家 NFT 余额不足: 拥有 ${sellerBalance}, 需要 ${amount}`);
+                }
+                if (!isApproved) {
+                    throw new Error(`卖家 ${listing.seller} 未授权 MyToken 合约操作 NFT。卖家需使用“直接授权 NFT”功能`);
+                }
+                const approvedAmount = await myTokenContract.methods.getApprovedAmount(listing.seller, listing.nftContract, listing.tokenId).call();
+                if (BigInt(approvedAmount) < BigInt(amount)) {
+                    throw new Error(`卖家授权数量不足: 已授权 ${approvedAmount}, 需要 ${amount}。卖家需使用“授权 NFT (MyToken approveNFT)”功能`);
+                }
+                const result = await myTokenContract.methods.buyNFT(listingId, amount).send(txOptions);
+                console.log("交易结果:", result);
+                document.getElementById("buyResult").innerText = `成功购买 ${amount} 个 NFT（挂单 ID ${listingId}），支付 ${totalPriceDisplay} 代币`;
+            } catch (error) {
+                console.error("交易错误:", error);
+                document.getElementById("buyResult").innerText = `错误: ${error.message}`;
+            }
+        };
+
+        // 取消挂单
+        document.getElementById("cancelListing").onclick = async () => {
+            if (!web3 || !userAccount) {
+                alert("请先连接钱包！");
+                return;
+            }
+            const listingId = document.getElementById("cancelListingId").value;
+            if (!listingId) {
+                alert("请填写挂单 ID！");
+                return;
+            }
+            try {
+                await myTokenContract.methods.cancelListing(listingId).send({ from: userAccount, gas: 500000 });
+                document.getElementById("cancelResult").innerText = `挂单 ID ${listingId} 已取消`;
+            } catch (error) {
+                document.getElementById("cancelResult").innerText = `错误: ${error.message}`;
+            }
+        };
+
+        // 查询活跃挂单
+        document.getElementById("listActiveListings").onclick = async () => {
+            if (!web3 || !userAccount) {
+                alert("请先连接钱包！");
+                return;
+            }
+            try {
+                const listingIdCounter = await myTokenContract.methods.listingIdCounter().call();
+                const listingsTable = document.getElementById("activeListings");
+                listingsTable.innerHTML = "";
+                for (let i = 1; i < listingIdCounter; i++) {
+                    const listing = await myTokenContract.methods.listings(i).call();
+                    if (listing.active) {
+                        const priceDisplay = web3.utils.fromWei(listing.price, "ether");
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td>${i}</td>
+                            <td>${listing.seller}</td>
+                            <td>${listing.nftContract}</td>
+                            <td>${listing.tokenId}</td>
+                            <td>${listing.amount}</td>
+                            <td>${listing.paymentToken === "0x0000000000000000000000000000000000000000" ? "ETH" : listing.paymentToken}</td>
+                            <td>${priceDisplay}</td>
+                        `;
+                        listingsTable.appendChild(row);
+                    }
+                }
+                if (listingsTable.innerHTML === "") {
+                    listingsTable.innerHTML = "<tr><td colspan='7'>无活跃挂单</td></tr>";
+                }
+            } catch (error) {
+                document.getElementById("activeListings").innerHTML = `<tr><td colspan='7'>错误: ${error.message}</td></tr>`;
+            }
+        };
+    </script>
+</body>
+</html>
